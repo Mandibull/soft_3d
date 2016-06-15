@@ -3,14 +3,14 @@
     position: fixed;
     top: 0px;
     left: 0px;
-    z-index: 200;
+    z-index: -200;
 }
 
 #render_canvas {
     position: fixed;
     top: 0px;
     left: 0px;
-    z-index: 100;
+    z-index: -100;
 }
 
 html {
