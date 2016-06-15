@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Software 3D renderer</title>
+        <link rel="stylesheet" href="soft3d.css" type="text/css"></link>
+        <script type="text/javascript" src="dat.gui.min.js"></script>
+        <script type="text/javascript" src="soft3d.js"></script>
+        <script type="text/javascript">
+         var soft3D = null;
+         window.onload = function() {
+            soft3D = new Soft3D('render_canvas', 1280, 768);
+            soft3D.run();
+         };
+        </script>
+    </head>
+    <body>
+        <div id="fps"><span id="fps_count"></span>&nbsp;fps</div>
+        <canvas id="render_canvas"></canvas>
+    </body>
+</html>
