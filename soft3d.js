@@ -43,8 +43,7 @@ class Soft3D {
         this.points = null;
 
         this.gui = new dat.GUI();
-        var _this = this;
-        this.gui.add(_this, 'polygonEdges', 2, 40).step(1);
+        this.gui.add(this, 'polygonEdges', 2, 40).step(1);
     }
 
     update(elapsedTime) {
@@ -65,8 +64,7 @@ class Soft3D {
 
     run() {
         this.lastTime = performance.now();
-        var _this = this;
-        setTimeout(function() { _this.loop(); }, 0);
+        this.loop();
     }
 
     loop() {
