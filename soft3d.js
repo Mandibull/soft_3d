@@ -60,9 +60,9 @@ class Soft3D {
             var step = Math.PI * 2 / this.nbPoints;
             for (var i = 0; i < this.nbPoints; ++i) {
                 this.points[i*2+0] = Math.round(
-                    Math.cos(step * i) * 300 + this.width / 2);
+                    Math.cos(step * i) * 250 + this.width / 2);
                 this.points[i*2+1] = Math.round(
-                    Math.sin(step * i) * 300 + this.height / 2);;
+                    Math.sin(step * i) * 250 + this.height / 2);;
             }
         }
     }
