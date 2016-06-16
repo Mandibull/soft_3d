@@ -30,7 +30,7 @@ class Soft3D {
         this.aggressiveScheduler = false;
 
         this.gui = new dat.GUI({width: 300});
-        this.gui.add(this, 'polygonEdges', 3, 40).step(1);
+        this.gui.add(this, 'polygonEdges', 3, 100).step(1);
         this.gui.add(this, 'drawMethod', ['drawFilledTriangle', 'drawFilledPoly', 'drawPoly']);
         this.gui.add(this, 'aggressiveScheduler');
     }
@@ -42,7 +42,6 @@ class Soft3D {
         if (edges != this.nbPoints) {
             this.nbPoints = edges;
             this.points = new Array(this.nbPoints * 4);
-            // FIXME: there is something wrong for certain values of nbPoints (19, 33, etc.)
             var step = Math.PI * 2 / this.nbPoints;
             for (var i = 0; i < this.nbPoints; ++i) {
                 this.points[i*2+0] = Math.round(
@@ -86,21 +85,24 @@ class Soft3D {
         this.data.fill(0);
 
         var hue = 0;
-        var hueStep = Math.floor(360 / this.nbPoints);
+        var hueStep = 360.0 / this.nbPoints;
         for (var i = 1; i < this.nbPoints; ++i) {
-            this[this.drawMethod]([
-                [this.points[(i-1)*2+0], this.points[(i-1)*2+1]],
-                [this.points[(i-0)*2+0], this.points[(i-0)*2+1]],
-                [Math.round(this.width / 2), Math.round(this.height / 2)]],
-                hueTable[hue]);
+            this[this.drawMethod](
+                [
+                    [this.points[(i-1)*2+0], this.points[(i-1)*2+1]],
+                    [this.points[(i-0)*2+0], this.points[(i-0)*2+1]],
+                    [Math.round(this.width / 2), Math.round(this.height / 2)]
+                ],
+                hueTable[Math.round(hue)]);
             hue += hueStep;
         }
-        this[this.drawMethod]([
-            [this.points[(i-1)*2+0], this.points[(i-1)*2+1]],
-            [this.points[0], this.points[1]],
-            [Math.round(this.width / 2), Math.round(this.height / 2)]],
-            hueTable[hue]);
-
+        this[this.drawMethod](
+            [
+                [this.points[(i-1)*2+0], this.points[(i-1)*2+1]],
+                [this.points[0], this.points[1]],
+                [Math.round(this.width / 2), Math.round(this.height / 2)]
+            ],
+            hueTable[Math.round(hue)]);
     }
 
     drawFilledPoly(verts, rgb)
@@ -185,11 +187,9 @@ class Soft3D {
                 }
             }
             if (nodes == 2) {
-                // Sort the nodes
-                nodeX.sort();
-                // Fill the pixels between node pairs
+                nodeX.sort();  // FIXME: change this silly sort
                 for (var x = nodeX[0]; x < nodeX[1]; ++x)
-                    this.plot(x, y, rgb);
+                    this.plot(x, y, rgb);  // FIXME: better method to fill h-lines?
             }
         }
     }
@@ -201,6 +201,7 @@ class Soft3D {
     }
 
     drawLine(v0, v1, rgb) {
+        // FIXME: the algo doesn's always draw the same line for wether it's A -> B and B -> A
         var x0 = v0[0];
         var y0 = v0[1];
         var x1 = v1[0];
