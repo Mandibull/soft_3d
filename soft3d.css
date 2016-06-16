@@ -1,18 +1,9 @@
-#fps {
-    color: white;
-    position: fixed;
-    top: 0px;
-    left: 0px;
-    z-index: -200;
-}
-
 #render_canvas {
     position: fixed;
     top: 0px;
     left: 0px;
-    z-index: -100;
 }
 
 html {
-    background-color: black;
+    background-color: #050505;
 }

@@ -1,23 +1,5 @@
 'use strict';
 
-class FPSCounter {
-    constructor(fpsNodeID) {
-        this.fpsNode = document.getElementById(fpsNodeID);
-        this.lastTime = 0;
-        this.samples = 20;
-        this.counter = 0;
-    }
-
-    update(currentTime) {
-        if (++this.counter <= this.samples)
-            return;
-        var elapsedTime = currentTime - this.lastTime;
-        this.fpsNode.textContent = Math.round(this.samples * 1000 / elapsedTime);
-        this.lastTime = currentTime;
-        this.counter = 0;
-    }
-}
-
 class Soft3D {
     constructor(canvasID, width, height) {
         this.width = width;
@@ -36,22 +18,26 @@ class Soft3D {
         this.buf8 = new Uint8ClampedArray(this.buf);
         this.data = new Uint32Array(this.buf);
 
-        this.fpsCounter = new FPSCounter('fps_count');
+        this.stats = new Stats();
+        this.stats.showPanel(0);  // 0: fps, 1: ms, 2: mb, 3+: custom
+        this.stats.domElement.style.display = 'inline-block';
+        document.body.appendChild(this.stats.domElement);
 
         this.polygonEdges = 8;
         this.nbPoints = null;
         this.points = null;
-        this.drawMesh = false;
-        this.drawMethod = null;
+        this.drawMethod = 'drawFilledTriangle';
+        this.aggressiveScheduler = false;
 
-        this.gui = new dat.GUI();
+        this.gui = new dat.GUI({width: 300});
         this.gui.add(this, 'polygonEdges', 3, 40).step(1);
-        this.gui.add(this, 'drawMesh');
+        this.gui.add(this, 'drawMethod', ['drawFilledTriangle', 'drawFilledPoly', 'drawPoly']);
+        this.gui.add(this, 'aggressiveScheduler');
     }
 
     update(elapsedTime) {
-        this.drawMethod = this.drawMesh ? this.drawPoly : this.drawFilledPoly;
-        // FIXME: find how to disallow floats in dat.GUI
+        // FIXME: find how to disallow floats in dat.GU
+        // FIXME: use dat.GUI onFinishChange
         var edges = Math.trunc(this.polygonEdges);
         if (edges != this.nbPoints) {
             this.nbPoints = edges;
@@ -69,6 +55,7 @@ class Soft3D {
 
     run() {
         this.lastTime = performance.now();
+        this.stats.begin();
         this.loop();
     }
 
@@ -76,7 +63,9 @@ class Soft3D {
         var currentTime = performance.now();
         var elapsedTime = currentTime - this.lastTime;
 
-        this.fpsCounter.update(currentTime);
+        this.stats.end();
+        this.stats.begin();
+
         this.update(elapsedTime);
         this.render();
 
@@ -86,7 +75,10 @@ class Soft3D {
 
         this.lastTime = currentTime;
         var _this = this;
-        setTimeout(function() { _this.loop(); }, 0);
+        if (this.aggressiveScheduler)
+            setTimeout(function() { _this.loop(); }, 0);
+        else
+            requestAnimationFrame(function() { _this.loop(); });
     }
 
     render() {
@@ -96,14 +88,14 @@ class Soft3D {
         var hue = 0;
         var hueStep = Math.floor(360 / this.nbPoints);
         for (var i = 1; i < this.nbPoints; ++i) {
-            this.drawMethod([
+            this[this.drawMethod]([
                 [this.points[(i-1)*2+0], this.points[(i-1)*2+1]],
                 [this.points[(i-0)*2+0], this.points[(i-0)*2+1]],
                 [Math.round(this.width / 2), Math.round(this.height / 2)]],
                 hueTable[hue]);
             hue += hueStep;
         }
-        this.drawMethod([
+        this[this.drawMethod]([
             [this.points[(i-1)*2+0], this.points[(i-1)*2+1]],
             [this.points[0], this.points[1]],
             [Math.round(this.width / 2), Math.round(this.height / 2)]],
@@ -113,7 +105,6 @@ class Soft3D {
 
     drawFilledPoly(verts, rgb)
     {
-        // FIXME: write optimized version for triangles?
         // FIXME: can we tighten those boundaries?
         var yMin = 0;
         var yMax = this.height - 1;
@@ -152,9 +143,53 @@ class Soft3D {
                     if (nodeX[i    ] < xMin) nodeX[i    ] = xMin;
                     if (nodeX[i + 1] > xMax) nodeX[i + 1] = xMax;
                     for (j = nodeX[i]; j < nodeX[i + 1]; j++) {
-                        this.plot(j - xMin, y - yMin, rgb, 255);
+                        this.plot(j - xMin, y - yMin, rgb);
                     }
                 }
+            }
+        }
+    }
+
+    drawFilledTriangle(verts, rgb)
+    {
+        var verts00 = verts[0][0];
+        var verts01 = verts[0][1];
+        var verts10 = verts[1][0];
+        var verts11 = verts[1][1];
+        var verts20 = verts[2][0];
+        var verts21 = verts[2][1];
+
+        var yMax = this.height - 1;
+        var xMax = this.width - 1;
+
+        // Loop through the rows of the image
+        for (var y = 0; y < yMax; ++y) {
+            // Build a list of nodes
+            var nodes = 0;
+            var nodeX = [0, 0];
+            if ((verts01 < y && verts21 >= y) || (verts21 < y && verts01 >= y)) {
+                nodeX[nodes++] = Math.round(verts00 +
+                                            ((y - verts01) / (verts21 - verts01)) *
+                                            (verts20 - verts00));
+            }
+            if ((verts11 < y && verts01 >= y) || (verts01 < y && verts11 >= y)) {
+                nodeX[nodes++] = Math.round(verts10 +
+                                            ((y - verts11) / (verts01 - verts11)) *
+                                            (verts00 - verts10));
+            }
+            if (nodes < 2) {
+                if ((verts21 < y && verts11 >= y) || (verts11 < y && verts21 >= y)) {
+                    nodeX[nodes++] = Math.round(verts20 +
+                                                ((y - verts21) / (verts11 - verts21)) *
+                                                (verts10 - verts20));
+                }
+            }
+            if (nodes == 2) {
+                // Sort the nodes
+                nodeX.sort();
+                // Fill the pixels between node pairs
+                for (var x = nodeX[0]; x < nodeX[1]; ++x)
+                    this.plot(x, y, rgb);
             }
         }
     }
