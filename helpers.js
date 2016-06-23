@@ -1,5 +1,11 @@
 'use strict';
 
+// Some browsers have the clear method, fake it using clearRect otherwise
+CanvasRenderingContext2D.prototype.clear =
+    CanvasRenderingContext2D.prototype.clear || function () {
+        this.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    };
+
 function getJSON(url) {
     var request = new window.XMLHttpRequest();
     request.open('GET', url, false);
